@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: loan-origination-api
+
+  datasource:
+    # PostgreSQL bağlantı adresin. "loan_db" adında boş bir veritabanı açman gerekecek.
+    url: jdbc:postgresql://localhost:5432/loan_db
+    username: postgres
+    password: password # Kendi lokal veritabanı şifreni buraya yazmalısın
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    # Uygulama ayağa kalkarken eksik tabloları (LoanJpaEntity) otomatik oluşturur
+    hibernate:
+      ddl-auto: update
+    show-sql: true # Arka planda çalışan SQL sorgularını konsolda görmek için
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+server:
+  port: 8080 # API'mizin çalışacağı port
