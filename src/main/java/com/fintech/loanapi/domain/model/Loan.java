@@ -93,9 +93,9 @@ public class Loan {
     public Money getRemainingBalance() { return remainingBalance; }
     public LoanStatus getStatus() { return status; }
 
-    // Event'leri dışarıya salt okunur (read-only) bir liste olarak dönüyoruz
+    // Event'leri dışarıya hem salt okunur (read-only) hem de bağımsız bir "kopya" (snapshot) olarak dönüyoruz
     public List<DomainEvent> getDomainEvents() {
-        return Collections.unmodifiableList(domainEvents);
+        return List.copyOf(domainEvents);
     }
 
     // Olaylar Message Bus'a iletildikten sonra listeyi temizlemek için kullanılır
