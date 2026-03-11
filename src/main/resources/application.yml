@@ -3,21 +3,25 @@ spring:
     name: loan-origination-api
 
   datasource:
-    # PostgreSQL bağlantı adresin. "loan_db" adında boş bir veritabanı açman gerekecek.
     url: jdbc:postgresql://localhost:5432/loan_db
     username: postgres
-    password: password # Kendi lokal veritabanı şifreni buraya yazmalısın
+    password: matisse
     driver-class-name: org.postgresql.Driver
 
   jpa:
-    # Uygulama ayağa kalkarken eksik tabloları (LoanJpaEntity) otomatik oluşturur
     hibernate:
       ddl-auto: update
-    show-sql: true # Arka planda çalışan SQL sorgularını konsolda görmek için
+    show-sql: true
     properties:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
 server:
-  port: 8080 # API'mizin çalışacağı port
+  port: 8080

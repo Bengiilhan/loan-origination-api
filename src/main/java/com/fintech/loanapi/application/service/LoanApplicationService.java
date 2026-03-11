@@ -3,6 +3,7 @@ package com.fintech.loanapi.application.service;
 import com.fintech.loanapi.application.dto.ApplyForLoanCommand;
 import com.fintech.loanapi.application.dto.ProcessRepaymentCommand;
 import com.fintech.loanapi.application.port.in.LoanUseCase;
+import com.fintech.loanapi.application.port.out.EventPublisher;
 import com.fintech.loanapi.domain.model.Loan;
 import com.fintech.loanapi.domain.model.Money;
 import com.fintech.loanapi.domain.repository.LoanRepository;
@@ -16,24 +17,29 @@ import java.util.UUID;
 public class LoanApplicationService implements LoanUseCase {
 
     private final LoanRepository loanRepository;
+    private final EventPublisher eventPublisher;
 
     // İleride Message Bus (Kafka) entegrasyonu için EventPublisher portu da buraya eklenecek.
 
-    public LoanApplicationService(LoanRepository loanRepository) {
+    public LoanApplicationService(LoanRepository loanRepository, EventPublisher eventPublisher) {
         this.loanRepository = loanRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
-    @Transactional // İşlemsel Tutarlılık (Unit of Work)
+    @Transactional
     public UUID applyForLoan(ApplyForLoanCommand command) {
         Money principal = new Money(command.principalAmount(), command.currency());
         Loan loan = new Loan(command.customerId(), principal);
 
+        // 1. Veritabanına kaydet
         loanRepository.save(loan);
 
-        // TODO: Event'ler burada Message Bus'a gönderilecek
-        // eventPublisher.publish(loan.getDomainEvents());
-        // loan.clearDomainEvents();
+        // 2. Biriken Event'leri Message Bus'a (Kafka) gönder
+        eventPublisher.publish(loan.getDomainEvents());
+
+        // 3. Olaylar fırlatıldıktan sonra listeyi temizle
+        loan.clearDomainEvents();
 
         return loan.getId();
     }
@@ -47,7 +53,14 @@ public class LoanApplicationService implements LoanUseCase {
         // İş mantığını (Business Logic) Domain nesnesine devrediyoruz
         loan.approve();
 
+        // 1. Veritabanına kaydet (Durum APPROVED olarak güncellenir)
         loanRepository.save(loan);
+
+        // 2. Biriken Event'leri Message Bus'a (Kafka) gönder (Örn: LoanApprovedEvent)
+        eventPublisher.publish(loan.getDomainEvents());
+
+        // 3. Olaylar fırlatıldıktan sonra listeyi temizle
+        loan.clearDomainEvents();
     }
 
     @Override
@@ -61,6 +74,13 @@ public class LoanApplicationService implements LoanUseCase {
         // Geri ödeme iş kuralı ve limit kontrolleri Aggregate içinde yapılır
         loan.makeRepayment(payment);
 
+        // 1. Veritabanına kaydet (Kalan borç güncellenir, gerekirse durum CLOSED olur)
         loanRepository.save(loan);
+
+        // 2. Biriken Event'leri Message Bus'a (Kafka) gönder (Örn: RepaymentProcessedEvent, LoanClosedEvent)
+        eventPublisher.publish(loan.getDomainEvents());
+
+        // 3. Olaylar fırlatıldıktan sonra listeyi temizle
+        loan.clearDomainEvents();
     }
 }
